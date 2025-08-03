@@ -1,0 +1,71 @@
+# Podman Compose File for LaMa + ZITS Pipeline
+# Usage: podman-compose -f podman-compose.yml up --profile cpu
+# 
+# Note: GPU support requires proper CDI configuration:
+# sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+
+version: '3.8'
+
+services:
+  lama-zits-podman-gpu:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
+    container_name: lama-zits-pipeline-podman-gpu
+    # Podman GPU support via CDI
+    devices:
+      - nvidia.com/gpu=all
+    environment:
+      # Input/Output directories
+      - INPUT_VIDEO_DIR=/data/input_video
+      - MASKS_DIR=/data/masks
+      - LAMA_OUT_DIR=/data/lama_output
+      - ZITS_OUT_DIR=/data/zits_output
+      # AWS Configuration
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      # S3 Configuration
+      - S3_INPUT_VIDEO=${S3_INPUT_VIDEO:-}
+      - S3_OUTPUT_LOCATION=${S3_OUTPUT_LOCATION:-}
+      - USE_SYNTHETIC_DATA=${USE_SYNTHETIC_DATA:-true}
+    volumes:
+      - ./input_video:/data/input_video:Z
+      - ./masks:/data/masks:Z
+      - ./lama_output:/data/lama_output:Z
+      - ./zits_output:/data/zits_output:Z
+      - ./aws_output:/data/aws_output:Z
+    profiles:
+      - gpu
+
+  lama-zits-podman-cpu:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
+    container_name: lama-zits-pipeline-podman-cpu
+    environment:
+      # Input/Output directories
+      - INPUT_VIDEO_DIR=/data/input_video
+      - MASKS_DIR=/data/masks
+      - LAMA_OUT_DIR=/data/lama_output
+      - ZITS_OUT_DIR=/data/zits_output
+      # AWS Configuration
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      # S3 Configuration
+      - S3_INPUT_VIDEO=${S3_INPUT_VIDEO:-}
+      - S3_OUTPUT_LOCATION=${S3_OUTPUT_LOCATION:-}
+      - USE_SYNTHETIC_DATA=${USE_SYNTHETIC_DATA:-true}
+    volumes:
+      - ./input_video:/data/input_video:Z
+      - ./masks:/data/masks:Z
+      - ./lama_output:/data/lama_output:Z
+      - ./zits_output:/data/zits_output:Z
+      - ./aws_output:/data/aws_output:Z
+    profiles:
+      - cpu
+
+# Note about Podman volumes:
+# The :Z flag enables SELinux labeling for better security
+# This is a Podman-specific feature for rootless containers
